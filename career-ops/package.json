@@ -91,6 +91,7 @@
   "license": "MIT",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.112.3",
     "dotenv": "^17.0.0",
     "js-yaml": "^4.3.1",
     "playwright": "1.62.1"

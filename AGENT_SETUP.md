@@ -6,7 +6,7 @@ Antigravity) to execute. It assumes the repos are already cloned as sibling
 folders here:
 
 ```
-job-agent-project/
+AI-Hiring-Agent/
 ├── career-ops/              (santifer/career-ops — the central brain)
 ├── job-scraper/             (anandanair/job-scraper — local, on-demand LinkedIn discovery)
 ├── ai-job-scraper/           (Kurt-Chan/ai-job-scraper — scheduled multi-board discovery)
@@ -21,14 +21,14 @@ job-agent-project/
 ## How the pieces fit together
 
 ```
-                         ┌─────────────────────────────┐
-                         │   Supabase "jobs" table      │
-                         │  (shared discovery inbox)    │
-                         └──────────────┬───────────────┘
-                    ▲                   │
-     writes         │                   │ sync-pipeline.mjs reads
-     ┌───────────────┴──────────┐       │ unsynced rows, appends to
-     │                          │       ▼
+            ┌─────────────────────────────┐
+            │   Supabase "jobs" table     │
+            │  (shared discovery inbox)   │
+            └──────────────┬──────────────┘
+                     ▲                   │
+     writes          │                   │ sync-pipeline.mjs reads
+     ┌───────────────┴──────────┐        │ unsynced rows, appends to
+     │                          │        ▼
 ┌────┴─────┐            ┌───────┴──────────┐    ┌──────────────────────┐
 │anandanair│            │  Kurt-Chan        │    │ career-ops           │
 │job-scraper│           │  ai-job-scraper   │    │ data/pipeline.md     │

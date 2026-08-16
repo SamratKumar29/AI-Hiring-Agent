@@ -4,3 +4,4 @@ fastapi
 uvicorn[standard]
 pytest
 httpx
+supabase

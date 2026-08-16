@@ -27,31 +27,41 @@ LLM_API_KEY = os.environ.get("LLM_API_KEY") or os.environ.get("GEMINI_API_KEY") 
 # --- LLM Settings ---
 # Use any model supported by LiteLLM (gemini, openai/gpt-4o-mini, groq/llama-3.3-70b-versatile)
 # Full list of supported models & naming: https://docs.litellm.ai/docs/providers
-LLM_MODEL = "gemini"
+# For OpenRouter: use "openrouter/model-name" format
+LLM_MODEL = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
 
 # --- Salary / Remote Threshold (used by evaluate_job.py and score_jobs.py) ---
-MIN_SALARY_USD = 0          # e.g. 90000 — set to your minimum acceptable annual salary in USD, 0 = no filter
+MIN_SALARY_USD = 9600          # ₹8 LPA ≈ $9,600 USD — minimum acceptable annual salary
 REMOTE_ONLY = False         # if True, evaluate_job.py will flag on-site/hybrid roles as a concern
 
 # --- Search Configuration ---
 # Edit these to match YOUR target roles. Set LINKEDIN_F_WT=2 for remote-only LinkedIn search.
-LINKEDIN_SEARCH_QUERIES = ["your target role here"]
-LINKEDIN_LOCATION = "Worldwide"
-LINKEDIN_GEO_ID = 92000000      # 92000000=Worldwide, Singapore: 102454443, Dubai: 100205264, USA: 103644278
+LINKEDIN_SEARCH_QUERIES = [
+    "AI Engineer",
+    "ML Engineer",
+    "Applied AI Engineer",
+    "RAG Engineer",
+    "LLM Engineer",
+    "Machine Learning Engineer",
+    "Python Developer",
+    "Software Engineer AI"
+]
+LINKEDIN_LOCATION = "Bangalore, Karnataka, India"
+LINKEDIN_GEO_ID = 102713980      # Bangalore, India
 LINKEDIN_JOB_TYPE = "F" # F=Full-time, C=Contract, P=Part-time, T=Temporary, I=Internship
 LINKEDIN_JOB_POSTING_DATE = "r604800" # r86400=Past 24h, r604800=Past week
-LINKEDIN_F_WT = 2 # 1=Onsite, 2=Remote, 3=Hybrid
+LINKEDIN_F_WT = 3 # 1=Onsite, 2=Remote, 3=Hybrid (hybrid covers remote + occasional on-site)
 
-CAREERS_FUTURE_SEARCH_QUERIES = ["IT Support", "Full Stack Web Developer", "Application Support", "Cybersecurity Analyst", "fresher developer"]
+CAREERS_FUTURE_SEARCH_QUERIES = ["AI Engineer", "ML Engineer", "Applied AI Engineer", "Python Developer", "Machine Learning Engineer", "RAG Engineer"]
 CAREERS_FUTURE_SEARCH_CATEGORIES = ["Information Technology"]
 CAREERS_FUTURE_SEARCH_EMPLOYMENT_TYPES = ["Full Time"]
 
 # --- Processing Limits ---
 SCRAPING_SOURCES = ["linkedin"] # "linkedin", "careers_future"
-JOBS_TO_SCORE_PER_RUN = 5
-JOBS_TO_CUSTOMIZE_PER_RUN = 1
+JOBS_TO_SCORE_PER_RUN = 10
+JOBS_TO_CUSTOMIZE_PER_RUN = 2
 MAX_JOBS_PER_SEARCH = {
-    "linkedin": 2,
+    "linkedin": 5,
     "careers_future": 10,
 }
 
