@@ -1,0 +1,57 @@
+# .github/workflows/evaluate_job.yml
+#
+# Manually trigger this from the GitHub Actions tab (or GitHub mobile app)
+# with a job URL or a pasted job description, and it will score the role
+# against your resume.json and email/print you a verdict in the run log.
+
+name: Evaluate a Job Posting
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Job posting URL (leave blank if pasting text below)"
+        required: false
+        default: ""
+      text:
+        description: "Or paste the job description text directly"
+        required: false
+        default: ""
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run evaluator
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -n "${{ github.event.inputs.url }}" ]; then
+            python evaluate_job.py --url "${{ github.event.inputs.url }}"
+          else
+            python evaluate_job.py --text "${{ github.event.inputs.text }}"
+          fi
+
+      - name: Upload result log
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluated-jobs
+          path: evaluated_jobs.jsonl
+          if-no-files-found: ignore
