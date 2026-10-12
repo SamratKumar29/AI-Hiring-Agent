@@ -184,25 +184,27 @@ def test_sources_context_lists_boards_and_groups():
     assert "Gigs: r/freelance" in ctx
 
 
-def test_run_claude_raises_when_cli_missing(tmp_path, monkeypatch):
+def test_run_claude_uses_brain_llm_and_inlines_files(tmp_path, monkeypatch):
     import agent
+    from brain import llm
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "prompt.md").write_text("hello")
-    with patch.object(agent.shutil, "which", return_value=None):
-        with pytest.raises(RuntimeError, match="claude CLI not found"):
-            agent.run_claude("prompt.md")
-
-
-def test_run_claude_uses_resolved_executable(tmp_path, monkeypatch):
-    import agent
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / "prompt.md").write_text("hello")
-    fake_result = SimpleNamespace(returncode=0, stdout="ok\n", stderr="")
-    with patch.object(agent.shutil, "which", return_value="/usr/local/bin/claude"), \
-         patch.object(agent.subprocess, "run", return_value=fake_result) as mock_run:
-        out = agent.run_claude("prompt.md")
+    (tmp_path / "prompt.md").write_text("Read the file resume.md and answer.")
+    (tmp_path / "resume.md").write_text("I AM A RESUME")
+    with patch.object(llm, "chat", return_value=("ok\n", "some/model")) as chat:
+        out = agent.run_claude("prompt.md", context="TODAY")
     assert out == "ok"
-    assert mock_run.call_args[0][0][0] == "/usr/local/bin/claude"
+    sent = chat.call_args[0][0][0]["content"]
+    assert "I AM A RESUME" in sent and sent.endswith("TODAY")
+
+
+def test_run_claude_propagates_llm_unavailable(tmp_path, monkeypatch):
+    import agent
+    from brain import llm
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "prompt.md").write_text("hello")
+    with patch.object(llm, "chat", side_effect=llm.LLMUnavailable({"m": "HTTP 500"})):
+        with pytest.raises(llm.LLMUnavailable):
+            agent.run_claude("prompt.md")
 
 
 def test_analyze_jobs_writes_jobs_json(tmp_path, monkeypatch):

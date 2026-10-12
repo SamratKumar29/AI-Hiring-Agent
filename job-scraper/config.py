@@ -86,3 +86,9 @@ JOB_CHECK_LIMIT = 50
 ACTIVE_CHECK_TIMEOUT = 20
 ACTIVE_CHECK_MAX_RETRIES = 2
 ACTIVE_CHECK_RETRY_DELAY = 10
+
+# --- AI-Hiring-Agent: profile-driven overrides (written by brain/scrapers/manual.py) ---
+_override = os.environ.get("HIRE_SCRAPER_CONFIG")
+if _override and os.path.exists(_override):
+    import json as _json
+    globals().update(_json.load(open(_override, encoding="utf-8")))

@@ -134,6 +134,12 @@ tmp/
 
 # === Project-specific ===
 
+# Local agent planning artifacts
+/.cortex/
+
+# Personal resume input; keep local rather than publishing it with the project
+/Samrat_Kumar_Resume_Master.md
+
 # career-ops (Node.js/TypeScript)
 career-ops/node_modules/
 career-ops/dist/
@@ -309,3 +315,17 @@ integration/.tmp-script-test-*
 # Root-level generated files
 *.log
 .tmp-script-test-*/
+# AI-Hiring-Agent brain / user data
+brain/.env
+brain/data/
+profiles/
+digests/
+*.db
+Resume-Matcher/uploads/
+output/
+
+# career-ops runtime links (symlinks into career-ops/profile/<name>/)
+career-ops/profile/
+career-ops/data
+career-ops/reports
+career-ops/output

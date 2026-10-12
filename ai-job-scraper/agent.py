@@ -249,32 +249,23 @@ def scrape_jobs(search_queries: list[str]) -> list[dict]:
 
 # ── claude runner ─────────────────────────────────────────
 def run_claude(prompt_file: str, context: str = "") -> str:
-    """Run a Claude prompt file and return the text result.
-    Read tool is allowed so Claude can read resume/jobs files.
-    Write tool is not allowed, forcing Claude to print output instead.
-    Optional context is appended to the prompt for inline data injection.
+    """Run a prompt file through the central OpenRouter brain (brain.llm.chat) and return the text.
+    (Name kept so the rest of this file is untouched.) A chat model cannot read files itself,
+    so resume.md / output/raw_jobs.json are pasted into the prompt when the prompt refers to them.
     """
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from brain import llm
+
     prompt = Path(prompt_file).read_text(encoding="utf-8")
+    for fname in (RESUME_FILE, "output/raw_jobs.json"):
+        f = Path(fname)
+        if fname in prompt and f.exists():
+            prompt += f"\n\n===== {fname} =====\n{f.read_text(encoding='utf-8')[:60000]}"
     if context:
-        prompt = prompt + "\n" + context
-    # Resolve the executable so Windows finds the claude.cmd/claude.exe shim.
-    claude_exe = shutil.which("claude")
-    if not claude_exe:
-        raise RuntimeError(
-            "claude CLI not found on PATH — install Claude Code and make sure "
-            "`claude` runs from a terminal."
-        )
-    result = subprocess.run(
-        [claude_exe, "-p", prompt, "--output-format", "text", "--allowedTools", "Read"],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        cwd=".",
-    )
-    if result.returncode != 0:
-        print(f"Claude error: {result.stderr}")
-        raise RuntimeError("Claude subprocess failed")
-    return result.stdout.strip()
+        prompt += "\n" + context
+    text, _model = llm.chat([{"role": "user", "content": prompt}], max_tokens=4096, timeout=180)
+    return text.strip()
 
 def _parse_json_output(raw: str):
     """Parse Claude's output as JSON, tolerating markdown fences and prose

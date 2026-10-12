@@ -54,7 +54,7 @@ const OPENROUTER_API_URL    = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
 const MAX_TOKENS            = 8192;
 const RATE_LIMIT_DELAY_MS   = 2500;  // pause between requests on free tier
-const MODEL_TIMEOUT_MS      = 15_000; // abort a single model call after 15 s
+const MODEL_TIMEOUT_MS      = Number(process.env.CAREER_OPS_MODEL_TIMEOUT_MS) || 15_000; // abort a single model call (env override added by AI-Hiring-Agent)
 
 // Provider priority order — models are sorted by provider prefix, not hardcoded names.
 // Add, remove, or reorder providers here; model names are resolved at runtime from the API.
@@ -357,9 +357,21 @@ function loadContext() {
   };
 }
 
+// AI-Hiring-Agent: these prompts were written for an agent with file/browser/search tools. Through plain
+// chat completions a model may answer with a tool call instead of an evaluation, so say plainly what is available.
+const PLAIN_CHAT_PREAMBLE = [
+  'IMPORTANT - ENVIRONMENT: you are running in a plain text chat. You have NO tools: no file reading, no browser,',
+  'no web search, no shell. NEVER output tool calls, function calls or XML tags such as <function>, <parameter>.',
+  'Everything you need (candidate profile, CV, job posting) is already in this conversation. Any step that needs',
+  'files, browsing or searching must be skipped; mark that item "not evaluated" / null instead of attempting it.',
+  'Your reply MUST be the finished evaluation report in Markdown (header lines, blocks A-G, then the',
+  '"## Machine Summary" YAML fence) and nothing else. Be concise: a few lines per block.',
+].join('\n');
+
 export function buildSystemPrompt(modeContent, ctx) {
   const languageInstruction = outputLanguageInstruction(parseOutputLanguage(ctx.profile));
   return [
+    process.env.AIHIRE_PLAIN_CHAT === '0' ? '' : PLAIN_CHAT_PREAMBLE,
     ctx.shared,
     ctx.profileMode,
     modeContent,
@@ -623,6 +635,18 @@ async function cmdEvaluate(input, ctx) {
     }
     jdText = lines.join('\n');
     if (!jdText.trim()) { console.log('No input provided.'); return null; }
+  } else if (input.startsWith('local:')) {
+    // AI-Hiring-Agent: `local:jds/<file>.md` = read a saved job description (career-ops convention)
+    const rel = input.slice('local:'.length);
+    const abs = path.resolve(__dirname, rel);
+    if (!abs.startsWith(path.join(__dirname, 'jds') + path.sep)) {
+      console.error(`Refusing local path outside jds/: ${rel}`);
+      return null;
+    }
+    jdText = (readFile(rel) ?? '').slice(0, 16_000);
+    if (!jdText.trim()) { console.error(`Empty or missing file: ${rel}`); return null; }
+    const urlLine = jdText.match(/^\*\*URL:\*\*\s*(\S+)/m);
+    if (urlLine) input = urlLine[1];
   } else if (input.startsWith('http')) {
     console.log('Fetching job page...');
     try {

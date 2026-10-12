@@ -6,7 +6,7 @@ import random
 import logging
 import config
 import user_agents
-import supabase_utils
+import local_db
 from markdownify import markdownify as md
 import json
 
@@ -86,7 +86,9 @@ def _fetch_linkedin_job_ids(search_query: str, location: str) -> list:
 
     logging.info(f"--- Starting Phase 1: Scraping Job IDs (Max Start: {max_start}) ---")
     while start <= max_start:
-        target_url = f"https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords={search_query.replace(' ', '%20')}&location={location}&geoId={config.LINKEDIN_GEO_ID}&f_TPR={config.LINKEDIN_JOB_POSTING_DATE}&f_JT={config.LINKEDIN_JOB_TYPE}&f_WT={config.LINKEDIN_F_WT}&start={start}"
+        geo = f"&geoId={config.LINKEDIN_GEO_ID}" if config.LINKEDIN_GEO_ID else ""
+        wt = f"&f_WT={config.LINKEDIN_F_WT}" if config.LINKEDIN_F_WT else ""
+        target_url = f"https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords={search_query.replace(' ', '%20')}&location={location}{geo}&f_TPR={config.LINKEDIN_JOB_POSTING_DATE}&f_JT={config.LINKEDIN_JOB_TYPE}{wt}&start={start}"
 
         if start > 0:
             sleep_time = random.uniform(5.0, 15.0)
@@ -356,7 +358,7 @@ def process_linkedin_query(search_query: str, location: str, limit: int = None) 
 
 
     logging.info("\n--- Starting Filtering Step: Checking against Supabase ---")
-    job_ids_set, company_title_set = supabase_utils.get_existing_jobs_from_supabase()
+    job_ids_set, company_title_set = local_db.get_existing_jobs()
 
     new_job_ids_to_process = [
         str(job_id) for job_id in unique_linkedin_job_ids 
@@ -610,7 +612,7 @@ def process_careers_future_query(search_query: str, limit: int = None) -> list:
     # 2. Fetch existing job identifiers from Supabase
     logging.info("Phase 2: Fetching existing job identifiers from Supabase...")
     try:
-        job_ids_set_supabase, company_title_set_supabase = supabase_utils.get_existing_jobs_from_supabase()
+        job_ids_set_supabase, company_title_set_supabase = local_db.get_existing_jobs()
         logging.info(f"Phase 2: Supabase returned {len(job_ids_set_supabase)} existing IDs and {len(company_title_set_supabase)} company/title pairs.")
     except Exception as e:
         logging.error(f"Failed to fetch existing jobs from Supabase: {e}")
@@ -714,7 +716,7 @@ if __name__ == "__main__":
             # 2. Save the NEW scraped data to Supabase
             if new_linkedin_job_details:
                 print(f"\n--- Saving {len(new_linkedin_job_details)} new job(s) for query '{query}' ---")
-                supabase_utils.save_jobs_to_supabase(new_linkedin_job_details)
+                local_db.save_jobs(new_linkedin_job_details)
                 total_new_jobs_saved += len(new_linkedin_job_details)
             else:
                 print(f"\nNo new job details were fetched or processed for query '{query}'.")
@@ -734,7 +736,7 @@ if __name__ == "__main__":
             # 2. Save the NEW scraped data to Supabase
             if new_careers_future_job_details:
                 logging.info(f"\n--- Saving {len(new_careers_future_job_details)} new job(s) for query '{query}' ---")
-                supabase_utils.save_jobs_to_supabase(new_careers_future_job_details)
+                local_db.save_jobs(new_careers_future_job_details)
                 total_new_jobs_saved += len(new_careers_future_job_details)
             else:
                 logging.info(f"\nNo new job details were fetched or processed for query '{query}'.")
