@@ -2,7 +2,7 @@
 import os
 import subprocess
 
-from brain import config
+from brain import config, nodeenv
 
 
 def export_env(probe: bool = True) -> dict:
@@ -27,7 +27,7 @@ def export_env(probe: bool = True) -> dict:
 
 
 def run_with_env(cmd: list, cwd: str, **kwargs) -> subprocess.CompletedProcess:
-    env = {**os.environ, **{k: v for k, v in export_env().items() if v}}
+    env = nodeenv.with_proxy_support({**os.environ, **{k: v for k, v in export_env().items() if v}})
     return subprocess.run(cmd, cwd=cwd, env=env, **kwargs)
 
 
@@ -48,8 +48,8 @@ def run_with_fallback(cmd: list, cwd: str, timeout: int = 900, models: list | No
     errors: dict = {}
     base = {k: v for k, v in export_env(probe=False).items() if v}
     for m in models or [x for x in config.models() if not x.endswith(":batch")]:
-        env = {**os.environ, **base, "CAREER_OPS_MODEL": m, "OPENAI_MODEL": m,
-               "LLM_MODEL": f"openrouter/{m}"}
+        env = nodeenv.with_proxy_support({**os.environ, **base, "CAREER_OPS_MODEL": m, "OPENAI_MODEL": m,
+                                          "LLM_MODEL": f"openrouter/{m}"})
         try:
             r = subprocess.run(cmd, cwd=cwd, env=env, capture_output=True, text=True, timeout=timeout)
         except subprocess.TimeoutExpired:

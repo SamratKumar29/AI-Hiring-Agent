@@ -31,10 +31,20 @@ def node_bin() -> str | None:
     return None
 
 
+PROXY_VARS = ("HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy")
+
+
+def with_proxy_support(env: dict) -> dict:
+    """Node's fetch ignores HTTP(S)_PROXY unless NODE_USE_ENV_PROXY=1 (needed behind office proxies and in cron)."""
+    if any(env.get(v) for v in PROXY_VARS):
+        env.setdefault("NODE_USE_ENV_PROXY", "1")
+    return env
+
+
 def env_with_node() -> dict:
     """os.environ with node's folder first on PATH (so `npx`/child node calls match)."""
     nb = node_bin()
-    env = dict(os.environ)
+    env = with_proxy_support(dict(os.environ))
     if nb:
         env["PATH"] = str(Path(nb).parent) + os.pathsep + env.get("PATH", "")
     return env

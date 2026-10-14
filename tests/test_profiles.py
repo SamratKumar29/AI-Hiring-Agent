@@ -8,7 +8,7 @@ import yaml
 from brain import config, profiles
 
 ROOT = Path(__file__).resolve().parent.parent
-RESUME = ROOT / "Samrat_Kumar_Resume_Master.md"
+RESUME = ROOT / "tests" / "fixtures" / "sample_cv.md"
 
 
 PREFS = {"full_name": "Test User", "email": "t@x.com", "city": "Bengaluru", "country": "India",
@@ -36,13 +36,13 @@ def test_format_money():
 
 def test_guess_identity_from_real_resume():
     g = profiles.guess_identity(RESUME.read_text())
-    assert g["full_name"] == "Samrat Kumar"
-    assert g["email"] == "samrat2908@outlook.com"
-    assert g["github"] == "github.com/SamratKumar29"
+    assert g["full_name"] == "Jane Example"
+    assert g["email"] == "jane.example@example.com"
+    assert g["github"] == "github.com/janeexample"
 
 
 def test_read_resume_types(tmp_path):
-    assert "Samrat" in profiles.read_resume(RESUME)
+    assert "Jane" in profiles.read_resume(RESUME)
     import docx
     d = docx.Document(); d.add_paragraph("Hello docx resume"); f = tmp_path / "r.docx"; d.save(f)
     assert "Hello docx" in profiles.read_resume(f)
@@ -61,7 +61,7 @@ def test_create_list_load_active(env):
     profiles.set_active("second")
     assert profiles.get_active() == "second"
     p = profiles.load_profile("My AI Profile")
-    assert p["prefs"]["min_base_salary"] == 3000000 and "Samrat" in p["cv"]
+    assert p["prefs"]["min_base_salary"] == 3000000 and "Jane" in p["cv"]
     with pytest.raises(FileExistsError):
         profiles.create_profile("second", RESUME, PREFS)
     with pytest.raises(FileNotFoundError):
@@ -75,7 +75,7 @@ def test_questionnaire_defaults_and_piped_answers():
                     "remote", "inr", "banana", "28 LPA", "35 LPA", "3", "python, rag", "gambling", "", "n", "45", ""])
     out = []
     prefs = profiles.ask_preferences(RESUME.read_text(), input_fn=lambda _: next(answers), output_fn=out.append)
-    assert prefs["full_name"] == "Samrat Kumar"            # from CV guess
+    assert prefs["full_name"] == "Jane Example"            # from CV guess
     assert prefs["target_roles"] == ["Prompt Engineer", "AI Engineer"]
     assert prefs["min_base_salary"] == 2_800_000           # 'banana' rejected, re-asked
     assert prefs["work_mode"] == "remote" and prefs["notice_period_days"] == 45
@@ -139,7 +139,7 @@ def test_activate_puts_everything_in_profile_dir_and_links(env):
                          "data": d / "workspace" / "data", "reports": d / "workspace" / "reports",
                          "output": d / "workspace" / "output"}.items():
         assert (env / link).is_symlink() and (env / link).resolve() == target.resolve(), link
-    assert "Samrat" in (env / "cv.md").read_text()
+    assert "Jane" in (env / "cv.md").read_text()
     assert list((config.DATA_DIR / "backups").rglob("*cv.md"))      # differing old root cv was backed up
     assert r["narrative_generated"] and "CUSTOM-MARK" in (d / "_profile.md").read_text()
     assert yaml.safe_load((d / "profile.yml").read_text())["narrative"]["headline"] == "RAG builder"

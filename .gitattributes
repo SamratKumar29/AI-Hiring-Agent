@@ -1,0 +1,5 @@
+# Keep scripts runnable on every machine (a CRLF start_ui.sh breaks under WSL/Linux; a LF .bat breaks on Windows)
+*.sh text eol=lf
+*.bat text eol=crlf
+*.ttf binary
+*.pdf binary

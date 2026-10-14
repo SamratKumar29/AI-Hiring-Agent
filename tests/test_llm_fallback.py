@@ -92,3 +92,20 @@ def test_healthy_model_skips_flooded(monkeypatch, tmp_path):
     assert llm.healthy_model() == "m2"
     monkeypatch.setattr(llm.requests, "post", lambda *a, **k: 1 / 0)  # cached: no network
     assert llm.healthy_model() == "m2"
+
+
+def test_validate_rejects_unusable_answer_and_moves_on_without_retrying(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setenv("OPENROUTER_MODELS", "a,b")
+    monkeypatch.delenv("OPENROUTER_PAID_FALLBACK", raising=False)
+    calls = []
+
+    def fake(model, messages, max_tokens, timeout, key):
+        calls.append(model)
+        return "<tool_call>x</tool_call>" if model == "a" else "A real answer"
+    monkeypatch.setattr(llm, "_call", fake)
+    text, used = llm.chat([{"role": "user", "content": "hi"}], validate=lambda t: "tool call" if "<tool_call>" in t else None)
+    assert (text, used) == ("A real answer", "b") and calls == ["a", "b"]           # 'a' tried once only
+    with pytest.raises(llm.LLMUnavailable) as e:
+        llm.chat([{"role": "user", "content": "hi"}], validate=lambda t: "never good")
+    assert "unusable: never good" in str(e.value)

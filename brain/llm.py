@@ -39,8 +39,10 @@ def _call(model: str, messages: list, max_tokens: int, timeout: int, key: str) -
 
 
 def chat(messages: list, model: str | None = None, max_tokens: int = 512,
-         timeout: int = 60, backoff: float = 1.0) -> tuple[str, str]:
-    """Return (text, model_used). Tries `model` first (if given), then the configured list."""
+         timeout: int = 60, backoff: float = 1.0, validate=None) -> tuple[str, str]:
+    """Return (text, model_used). Tries `model` first (if given), then the configured list.
+    `validate(text)` may return an error string to reject an answer that arrived but is unusable
+    (wrong shape, tool-call text...); that model is then skipped without retrying it."""
     key = config.api_key()
     order = ([model] if model else []) + [m for m in config.models() if m != model]
     if not order:
@@ -49,7 +51,12 @@ def chat(messages: list, model: str | None = None, max_tokens: int = 512,
     for m in order:
         for attempt in range(RETRIES_PER_MODEL + 1):
             try:
-                return _call(m, messages, max_tokens, timeout, key), m
+                text = _call(m, messages, max_tokens, timeout, key)
+                bad = validate(text) if validate else None
+                if bad:
+                    errors[m] = f"unusable: {bad}"[:160]
+                    break
+                return text, m
             except Exception as e:  # noqa: BLE001
                 errors[m] = str(e).replace(key, "***")
                 if "HTTP 401" in errors[m] or "HTTP 403" in errors[m]:

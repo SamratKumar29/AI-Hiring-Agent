@@ -297,21 +297,6 @@ job-scraper/output/
 job-scraper/*.log
 job-scraper/.tmp-script-test-*
 
-# integration (Python/Node.js)
-integration/__pycache__/
-integration/*.py[cod]
-integration/.pytest_cache/
-integration/.coverage
-integration/coverage.xml
-integration/htmlcov/
-integration/.mypy_cache/
-integration/node_modules/
-integration/dist/
-integration/build/
-integration/.next/
-integration/*.log
-integration/.tmp-script-test-*
-
 # Root-level generated files
 *.log
 .tmp-script-test-*/
@@ -329,3 +314,16 @@ career-ops/profile/
 career-ops/data
 career-ops/reports
 career-ops/output
+
+# Personal files: never commit (keep your real CV out of the repo; tests use tests/fixtures/sample_cv.md)
+*Resume_Master*.md
+*_CV.md
+my-cv/
+.streamlit/secrets.toml
+
+# Local tooling state
+.cortex/
+.pytest_cache/
+
+# career-ops ships its own .dockerignore (its updater checks for it)
+!career-ops/.dockerignore

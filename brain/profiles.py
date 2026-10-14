@@ -33,6 +33,39 @@ REMOTE_FEEDS = ["RemoteOK:remoteok", "Remotive:remotive", "We Work Remotely:wewo
                 "Himalayas:himalayas", "Working Nomads:workingnomads", "Jobicy:jobicy"]
 
 
+def form_to_prefs(raw: dict) -> tuple[dict, list[str]]:
+    """Web-form answers (all strings/lists/bools) -> (preferences, problems). Same rules as the questionnaire."""
+    prefs, problems = {}, []
+    for key, prompt, default, kind in FIELDS:
+        v = raw.get(key, default)
+        txt = ", ".join(map(str, v)) if isinstance(v, list) else ("" if v is None else str(v)).strip()
+        label = prompt.split(" (")[0].split(":")[0]
+        if kind == "list":
+            prefs[key] = _to_list(txt)
+        elif kind == "salary":
+            if txt and parse_salary(txt) is None:
+                problems.append(f"{label}: could not read '{txt}' - try '25 LPA' or '120k'.")
+            prefs[key] = parse_salary(txt) if txt else None
+            prefs[key + "_text"] = txt
+        elif kind == "int":
+            if txt and not re.fullmatch(r"\d+(\.\d+)?", txt):
+                problems.append(f"{label}: please enter a number.")
+                txt = ""
+            prefs[key] = float(txt) if "." in txt else int(txt or 0)
+        elif kind == "bool":
+            prefs[key] = v if isinstance(v, bool) else _to_bool(txt)
+        elif kind == "mode":
+            if txt.lower() not in ("remote", "hybrid", "onsite", "any"):
+                problems.append(f"{label}: choose remote, hybrid, onsite or any.")
+                txt = "any"
+            prefs[key] = txt.lower()
+        else:
+            prefs[key] = txt
+    if not prefs.get("target_roles"):
+        problems.append("Target job titles: enter at least one.")
+    return prefs, problems
+
+
 # ---------------------------------------------------------------- helpers
 def slug(name: str) -> str:
     s = re.sub(r"[^a-z0-9]+", "-", name.strip().lower()).strip("-")

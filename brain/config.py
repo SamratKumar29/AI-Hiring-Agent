@@ -50,3 +50,27 @@ def get(name: str, default: str = "") -> str:
 
 
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
+
+
+def set_env_value(name: str, value: str) -> None:
+    """Set NAME=value in brain/.env in place (keeps every other line and comment), file mode 600."""
+    if "\n" in value or "\r" in value:
+        raise ValueError("value must be a single line")
+    lines = ENV_FILE.read_text(encoding="utf-8").splitlines() if ENV_FILE.exists() else []
+    for i, ln in enumerate(lines):
+        if ln.split("=", 1)[0].strip() == name:
+            lines[i] = f"{name}={value}"
+            break
+    else:
+        lines.append(f"{name}={value}")
+    tmp = ENV_FILE.with_suffix(".tmp")
+    tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    os.chmod(tmp, 0o600)
+    tmp.replace(ENV_FILE)
+    os.environ[name] = value
+
+
+def save_env(updates: dict) -> None:
+    """Set several NAME=value pairs in brain/.env at once (comments and file mode 600 are kept; empty value = clear)."""
+    for k, v in updates.items():
+        set_env_value(k, "" if v is None else str(v).strip())

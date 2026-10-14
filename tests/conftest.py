@@ -6,7 +6,7 @@ import pytest
 from brain import config, profiles
 
 ROOT = Path(__file__).resolve().parent.parent
-RESUME = ROOT / "Samrat_Kumar_Resume_Master.md"
+RESUME = ROOT / "tests" / "fixtures" / "sample_cv.md"       # fictional person; never use a real CV in tests
 PREFS = {"full_name": "Test User", "email": "t@x.com", "city": "Bengaluru", "country": "India",
          "target_roles": ["Senior AI Engineer", "ML Engineer", "Staff AI Engineer"],
          "locations": ["Bengaluru", "Remote"], "work_mode": "hybrid", "currency": "INR",
@@ -41,3 +41,12 @@ def active(env):
     profiles.create_profile("p", RESUME, PREFS)
     profiles.activate("p", use_llm=False)
     return "p"
+
+
+@pytest.fixture(autouse=True)
+def _no_spend_lookup(monkeypatch, request):
+    """Tests never call OpenRouter's /auth/key; test_budget.py replaces this stub itself."""
+    if request.module.__name__.endswith("test_budget"):
+        return
+    from brain import budget
+    monkeypatch.setattr(budget, "usage", lambda: {"ok": True, "monthly": 0.0, "limit_remaining": None, "error": None})
